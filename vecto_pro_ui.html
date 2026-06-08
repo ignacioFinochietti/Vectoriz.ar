@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-zinc-950 text-zinc-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vecto Pro - Panel de Control de Vectorizado</title>
+    <!-- Tailwind CSS v3 (para emulación limpia en sandbox) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            950: '#09090b',
+                            900: '#18181b',
+                            800: '#27272a',
+                            700: '#3f3f46',
+                            600: '#52525b',
+                            500: '#71717a',
+                            400: '#a1a1aa',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Cuadrícula de transparencia profesional (Checkerboard) */
+        .checkerboard {
+            background-color: #111113;
+            background-image: 
+                linear-gradient(45deg, #18181b 25%, transparent 25%), 
+                linear-gradient(-45deg, #18181b 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #18181b 75%), 
+                linear-gradient(-45deg, transparent 75%, #18181b 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+        /* Transiciones suaves */
+        .transition-all-300 {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans selection:bg-violet-500/30 selection:text-violet-300 overflow-x-hidden">
+
+    <!-- 2. NAVBAR (Header) -->
+    <header class="h-14 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-50 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <!-- Icono de Rayo Gradient -->
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.5 22C11.17 22 10.85 21.83 10.67 21.52L6.17 13.52C5.92 13.07 6.04 12.5 6.44 12.21C6.84 11.92 7.41 12.04 7.7 12.44L11.5 19.2L16.3 10.8C16.59 10.4 17.16 10.28 17.56 10.57C17.96 10.86 18.08 11.43 17.79 11.83L12.33 21.52C12.15 21.83 11.83 22 11.5 22ZM12.5 13.5H7C6.45 13.5 6 13.05 6 12.5C6 11.95 6.45 11.5 7 11.5H11.5V3C11.5 2.45 11.95 2 12.5 2C13.05 2 13.5 2.45 13.5 3V11.5H18C18.55 11.5 19 11.95 19 12.5C19 13.05 18.55 13.5 18 13.5H12.5V13.5Z"/>
+                </svg>
+            </div>
+            <span class="font-bold text-lg tracking-tight">Vecto <span class="text-violet-400 font-medium">Pro</span></span>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="px-2 py-0.5 rounded border border-zinc-700/60 text-[10px] uppercase font-bold tracking-widest text-zinc-400 bg-zinc-900/50">Desktop App</span>
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Motor local activo"></div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8 flex flex-col justify-center">
+
+        <!-- ESTADO GLOBAL: SIN IMAGEN (DropZone Héroe) -->
+        <div id="empty-state" class="w-full max-w-2xl mx-auto flex flex-col gap-6 transition-all-300">
+            <div class="text-center space-y-2">
+                <h1 class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400">
+                    Vectorizado local ultra-rápido
+                </h1>
+                <p class="text-sm text-zinc-400 max-w-md mx-auto">
+                    Convertí tus bocetos, firmas y logos rasterizados en vectores matemáticos limpios de curvas editables.
+                </p>
+            </div>
+
+            <!-- 1. DropZone Grande -->
+            <div id="dropzone-area" 
+                 class="border-2 border-dashed border-zinc-700 hover:border-violet-500/80 bg-zinc-900/30 hover:bg-violet-500/5 rounded-2xl p-12 text-center cursor-pointer transition-all-300 group flex flex-col items-center justify-center relative min-h-[300px]"
+                 onclick="triggerFileSelect()">
+                
+                <input type="file" id="file-input" class="hidden" accept="image/png, image/jpeg" onchange="handleFileChange(event)">
+                
+                <!-- Icono Animado -->
+                <div class="w-14 h-14 rounded-full bg-zinc-800/60 group-hover:bg-violet-500/10 flex items-center justify-center border border-zinc-700/50 group-hover:border-violet-500/30 transition-all-300 mb-4 group-hover:scale-105">
+                    <svg class="w-7 h-7 text-zinc-400 group-hover:text-violet-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                </div>
+
+                <p class="text-zinc-200 font-medium group-hover:text-violet-300 transition-colors">Arrastrá y soltá tu imagen aquí</p>
+                <p class="text-xs text-zinc-500 mt-1">PNG o JPG de alta resolución — o haz clic para explorar</p>
+
+                <div class="mt-6 flex flex-wrap gap-2 justify-center" onclick="event.stopPropagation()">
+                    <span class="text-xs text-zinc-500 self-center mr-1">¿No tenés una imagen a mano? Probá:</span>
+                    <button onclick="loadDemoImage('firma')" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 border border-zinc-700/60 flex items-center gap-1.5">
+                        ✒️ Demo Firma
+                    </button>
+                    <button onclick="loadDemoImage('logo')" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 border border-zinc-700/60 flex items-center gap-1.5">
+                        ◆ Demo Logo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ESTADO GLOBAL: CON IMAGEN CARGADA (Workspace Dividido) -->
+        <div id="workspace" class="hidden w-full flex flex-col lg:flex-row gap-6 transition-all-300">
+            
+            <!-- COLUMNA IZQUIERDA: Visor / Previews -->
+            <div class="flex-1 flex flex-col gap-6">
+                
+                <!-- Info de Imagen Cargada -->
+                <div class="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800/80">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800 border border-zinc-700/50 flex items-center justify-center">
+                            <img id="image-thumb" class="w-full h-full object-cover" src="" alt="Thumbnail">
+                        </div>
+                        <div>
+                            <p id="image-name" class="text-xs font-semibold text-zinc-200 truncate max-w-xs lg:max-w-md">nombre_archivo.png</p>
+                            <p id="image-size" class="text-[10px] text-zinc-500">1200 x 800 px • PNG</p>
+                        </div>
+                    </div>
+                    <button onclick="resetApp()" class="px-3 py-1.5 text-xs rounded-lg bg-zinc-800/80 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 border border-zinc-700/50 hover:border-red-500/20 transition-all-300">
+                        Quitar Imagen
+                    </button>
+                </div>
+
+                <!-- 6. SplitPreview (Mosaico Comparador) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <!-- Original Panel -->
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Imagen Original</span>
+                            <span class="text-[10px] text-zinc-600">Mapa de bits</span>
+                        </div>
+                        <div class="bg-zinc-900 rounded-xl border border-zinc-800/80 aspect-square md:aspect-video flex items-center justify-center overflow-hidden p-4 min-h-[300px]">
+                            <img id="image-original-preview" class="max-w-full max-h-full object-contain filter drop-shadow-lg" src="" alt="Original Preview">
+                        </div>
+                    </div>
+
+                    <!-- SVG Panel (Con Checkerboard) -->
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                                SVG Vectorizado
+                                <span id="mode-badge" class="px-1.5 py-0.5 text-[8px] bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded font-normal normal-case">Contorno</span>
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleCheckerboardColor(this)" class="w-4 h-4 rounded border border-zinc-700/60 bg-white" title="Alternar fondo blanco/oscuro"></button>
+                                <span class="text-[10px] text-zinc-500">Vectores dinámicos</span>
+                            </div>
+                        </div>
+                        <div id="svg-container-wrapper" class="checkerboard rounded-xl border border-zinc-700/50 aspect-square md:aspect-video flex items-center justify-center overflow-hidden p-4 min-h-[300px] relative transition-all-300">
+                            
+                            <!-- Placeholder: Sin vectorizar -->
+                            <div id="svg-placeholder" class="text-center p-6 space-y-2 z-10 transition-opacity duration-300">
+                                <p class="text-sm font-medium text-zinc-400">Listo para procesar</p>
+                                <p class="text-xs text-zinc-600 max-w-xs">Configurá los presets en el panel lateral y hacé clic en "Vectorizar" para generar los nodos.</p>
+                            </div>
+
+                            <!-- Spinner de procesamiento -->
+                            <div id="svg-spinner" class="hidden absolute inset-0 bg-zinc-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20">
+                                <svg class="animate-spin h-8 w-8 text-violet-400" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-xs text-zinc-400 font-medium">Renderizando vectores en Rust...</p>
+                            </div>
+
+                            <!-- SVG Render Target -->
+                            <div id="svg-render-target" class="w-full h-full flex items-center justify-center text-zinc-100 transition-all-300"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 7. ActionBar (Solo si hay un vector generado) -->
+                <div id="action-bar" class="opacity-30 pointer-events-none transition-all-300 flex items-center gap-3 justify-center py-2 bg-zinc-900/40 rounded-xl border border-zinc-800/40 p-4">
+                    <!-- Guardar SVG -->
+                    <button onclick="downloadSVG()" class="px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition-all-300 flex items-center gap-2 transform active:scale-95">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span id="btn-save-text">Descargar SVG</span>
+                    </button>
+
+                    <!-- Copiar SVG -->
+                    <button onclick="copySVGToClipboard()" class="px-5 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold text-zinc-200 border border-zinc-700/60 transition-all-300 flex items-center gap-2 transform active:scale-95">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        <span id="btn-copy-text">Copiar código SVG</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- COLUMNA DERECHA: 5. ControlPanel (Sidebar Sticky) -->
+            <aside class="w-full lg:w-[340px] shrink-0">
+                <div class="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5 sticky top-20 flex flex-col gap-5 shadow-xl">
+                    
+                    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                        <h2 class="text-sm font-bold text-zinc-200 tracking-wide uppercase">Parámetros Pro</h2>
+                        <span id="preset-modified-badge" class="hidden text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">Modificado</span>
+                    </div>
+
+                    <!-- 3. PresetSelector -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-zinc-400">Presets sugeridos</span>
+                            <button id="btn-restore" onclick="restorePresetDefaults()" class="hidden text-[10px] text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                Restaurar
+                            </button>
+                        </div>
+                        
+                        <!-- Grid 2x2 de presets -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- Preset Firma -->
+                            <button id="preset-firma" onclick="applyPreset('firma')" class="p-2.5 rounded-xl border-2 text-left transition-all-300 flex flex-col justify-between min-h-[64px] border-violet-500 bg-violet-500/10 text-violet-300">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="text-lg">🖋️</span>
+                                    <span class="text-[8px] bg-violet-500/20 text-violet-200 px-1 py-0.2 rounded uppercase tracking-wider font-bold">Línea</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-[11px] mt-1 leading-none">Firma / Trazo</p>
+                                    <p class="text-[8px] text-zinc-400 mt-0.5">Opt. esqueleto</p>
+                                </div>
+                            </button>
+
+                            <!-- Preset Logo -->
+                            <button id="preset-logo" onclick="applyPreset('logo')" class="p-2.5 rounded-xl border-2 text-left transition-all-300 flex flex-col justify-between min-h-[64px] border-zinc-700/50 bg-zinc-800/40 text-zinc-400">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="text-lg">◆</span>
+                                    <span class="text-[8px] bg-zinc-700 text-zinc-300 px-1 py-0.2 rounded uppercase tracking-wider font-bold">Curvas</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-[11px] mt-1 leading-none">Logo</p>
+                                    <p class="text-[8px] text-zinc-500 mt-0.5">Formas limpias</p>
+                                </div>
+                            </button>
+
+                            <!-- Preset Pixel Art -->
+                            <button id="preset-pixel" onclick="applyPreset('pixel')" class="p-2.5 rounded-xl border-2 text-left transition-all-300 flex flex-col justify-between min-h-[64px] border-zinc-700/50 bg-zinc-800/40 text-zinc-400">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="text-lg">▣</span>
+                                    <span class="text-[8px] bg-zinc-700 text-zinc-300 px-1 py-0.2 rounded uppercase tracking-wider font-bold">Rectas</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-[11px] mt-1 leading-none">Pixel Art</p>
+                                    <p class="text-[8px] text-zinc-500 mt-0.5">Bordes vivos</p>
+                                </div>
+                            </button>
+
+                            <!-- Preset Foto -->
+                            <button id="preset-foto" onclick="applyPreset('foto')" class="p-2.5 rounded-xl border-2 text-left transition-all-300 flex flex-col justify-between min-h-[64px] border-zinc-700/50 bg-zinc-800/40 text-zinc-400">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="text-lg">🌄</span>
+                                    <span class="text-[8px] bg-zinc-700 text-zinc-300 px-1 py-0.2 rounded uppercase tracking-wider font-bold">Detalle</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-[11px] mt-1 leading-none">Fotografía</p>
+                                    <p class="text-[8px] text-zinc-500 mt-0.5">Máximo detalle</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sliders de Trazado -->
+                    <div class="space-y-4 pt-2 border-t border-zinc-800/60">
+                        <h3 class="text-[10px] font-bold text-zinc-500 tracking-wider uppercase">Filtros de Entrada</h3>
+                        
+                        <!-- Slider Umbral (Threshold) -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <label for="slider-threshold" class="text-xs text-zinc-300 font-medium">Umbral (Threshold)</label>
+                                <span id="val-threshold" class="text-xs font-mono text-zinc-400">128</span>
+                            </div>
+                            <input type="range" id="slider-threshold" min="10" max="245" value="128" 
+                                   class="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                                   oninput="updateSliderValue('threshold', this.value)">
+                        </div>
+
+                        <!-- Slider Blur -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <label for="slider-blur" class="text-xs text-zinc-300 font-medium">Filtro de Suavizado (Blur)</label>
+                                <span id="val-blur" class="text-xs font-mono text-zinc-400">2 px</span>
+                            </div>
+                            <input type="range" id="slider-blur" min="0" max="10" value="2" 
+                                   class="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                                   oninput="updateSliderValue('blur', this.value)">
+                        </div>
+
+                        <!-- Slider Despeckle -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <label for="slider-despeckle" class="text-xs text-zinc-300 font-medium">Despeckle (Reducción Ruido)</label>
+                                <span id="val-despeckle" class="text-xs font-mono text-zinc-400">8 px</span>
+                            </div>
+                            <input type="range" id="slider-despeckle" min="0" max="20" value="8" 
+                                   class="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                                   oninput="updateSliderValue('despeckle', this.value)">
+                        </div>
+
+                        <h3 class="text-[10px] font-bold text-zinc-500 tracking-wider uppercase pt-2 border-t border-zinc-800/80">Ajuste de Vectores</h3>
+
+                        <!-- Slider Tolerancia (Sparsity) -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <label for="slider-sparsity" class="text-xs text-zinc-300 font-medium">Tolerancia de Curvas</label>
+                                <span id="val-sparsity" class="text-xs font-mono text-zinc-400">4</span>
+                            </div>
+                            <input type="range" id="slider-sparsity" min="1" max="10" value="4" 
+                                   class="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                                   oninput="updateSliderValue('sparsity', this.value)">
+                        </div>
+
+                        <!-- Slider Optimización de Nodos -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <label for="slider-optimization" class="text-xs text-zinc-300 font-medium">Optimización Nodos</label>
+                                <span id="val-optimization" class="text-xs font-mono text-zinc-400">6</span>
+                            </div>
+                            <input type="range" id="slider-optimization" min="1" max="10" value="6" 
+                                   class="w-full h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                                   oninput="updateSliderValue('optimization', this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Botón Vectorizar -->
+                    <div class="pt-4 border-t border-zinc-800/60 flex flex-col gap-2">
+                        <button id="btn-vectorizar" onclick="runVectorizationEngine()" class="w-full py-3 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-sm font-semibold tracking-wide text-white transition-all-300 flex items-center justify-center gap-2 transform active:scale-95 shadow-lg shadow-violet-600/10">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3M3 12a48.291 48.291 0 013-2.9 4.006 4.006 0 013.7-3.7c1.21-.092 2.43-.138 3.663-.138m0 0a4.006 4.006 0 013.7 3.7c.092 1.21.138 2.43.138 3.663m-18 0l-3 3m3-3l3 3" />
+                            </svg>
+                            <span>Vectorizar en Rust</span>
+                        </button>
+                        
+                        <!-- Estado de Error Sutil (Oculto por defecto) -->
+                        <p id="error-message" class="hidden text-center text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/25 py-2 px-3 rounded-lg"></p>
+                        
+                        <div class="text-center mt-1">
+                            <span id="process-timer" class="text-[10px] text-zinc-600 font-mono">Última vectorización: --- ms</span>
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+
+        </div>
+
+    </main>
+
+    <!-- Footer de Ayuda Técnica -->
+    <footer class="py-4 border-t border-zinc-800/40 bg-zinc-950 px-6 flex flex-col md:flex-row justify-between items-center text-[11px] text-zinc-500 gap-2">
+        <p>© 2026 Vecto Pro Desktop Studio. Todos los derechos reservados.</p>
+        <div class="flex items-center gap-4">
+            <span>Algoritmo de Trazado: VTracer $O(n)$ Core</span>
+            <span class="text-zinc-700">|</span>
+            <span>Motor de Binarización Morfológica Local</span>
+        </div>
+    </footer>
+
+    <!-- LÓGICA DE CONTROL DEL PROTOTIPO -->
+    <script>
+        // Imagen demo - Firma (Boceto trazado a mano)
+        const DEMO_FIRMA_BASE64 = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' width='100' height='60'><path d='M10,40 Q25,10 40,35 T70,15 T90,50' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/><path d='M25,48 L80,22' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/></svg>";
+        // Imagen demo - Logo Geométrico
+        const DEMO_LOGO_BASE64 = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80' width='80' height='80'><polygon points='40,10 70,30 70,60 40,75 10,60 10,30' fill='none' stroke='black' stroke-width='4'/><circle cx='40' cy='44' r='18' fill='black'/></svg>";
+
+        // Configuración de Presets por Defecto
+        const presets = {
+            firma: { threshold: 140, blur: 2, despeckle: 8, sparsity: 4, optimization: 6, label: "Línea/Firma" },
+            logo: { threshold: 120, blur: 0, despeckle: 2, sparsity: 1, optimization: 9, label: "Contorno" },
+            pixel: { threshold: 127, blur: 0, despeckle: 0, sparsity: 0, optimization: 0, label: "Malla Rect" },
+            foto: { threshold: 110, blur: 4, despeckle: 5, sparsity: 7, optimization: 3, label: "Curva Suave" }
+        };
+
+        // Estado de la Aplicación
+        let activePreset = 'firma';
+        let currentSliders = { ...presets.firma };
+        let loadedImageSource = null;
+        let generatedSVGString = null;
+        let originalFileName = "";
+        let originalDimensions = "";
+
+        // Elementos del DOM Cacheables
+        const fileInput = document.getElementById('file-input');
+        const emptyState = document.getElementById('empty-state');
+        const workspace = document.getElementById('workspace');
+        const imageThumb = document.getElementById('image-thumb');
+        const imageName = document.getElementById('image-name');
+        const imageSize = document.getElementById('image-size');
+        const imgOriginalPreview = document.getElementById('image-original-preview');
+        const svgContainerWrapper = document.getElementById('svg-container-wrapper');
+        const svgPlaceholder = document.getElementById('svg-placeholder');
+        const svgSpinner = document.getElementById('svg-spinner');
+        const svgRenderTarget = document.getElementById('svg-render-target');
+        const actionBar = document.getElementById('action-bar');
+        const btnRestore = document.getElementById('btn-restore');
+        const presetModifiedBadge = document.getElementById('preset-modified-badge');
+        const processTimerLabel = document.getElementById('process-timer');
+        const errorMessage = document.getElementById('error-message');
+        const btnVectorizar = document.getElementById('btn-vectorizar');
+        const modeBadge = document.getElementById('mode-badge');
+
+        function triggerFileSelect() {
+            fileInput.click();
+        }
+
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadRealFile(file);
+            }
+        }
+
+        // Cargar un archivo del sistema del usuario
+        function loadRealFile(file) {
+            originalFileName = file.name;
+            const sizeInKb = (file.size / 1024).toFixed(1);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    originalDimensions = `${img.width} x ${img.height} px`;
+                    imageSize.textContent = `${originalDimensions} • ${file.type.split('/')[1].toUpperCase()} (${sizeInKb} KB)`;
+                    loadedImageSource = e.target.result;
+                    setupWorkspace();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Cargar una imagen de demostración integrada
+        function loadDemoImage(type) {
+            errorMessage.classList.add('hidden');
+            if (type === 'firma') {
+                originalFileName = "firma_boceto_escaneo.png";
+                originalDimensions = "800 x 480 px";
+                loadedImageSource = DEMO_FIRMA_BASE64;
+                applyPreset('firma');
+            } else {
+                originalFileName = "logo_emblema_pro.png";
+                originalDimensions = "600 x 600 px";
+                loadedImageSource = DEMO_LOGO_BASE64;
+                applyPreset('logo');
+            }
+            imageSize.textContent = `${originalDimensions} • Demo PNG`;
+            setupWorkspace();
+        }
+
+        // Configurar UI con la imagen cargada
+        function setupWorkspace() {
+            imageName.textContent = originalFileName;
+            imageThumb.src = loadedImageSource;
+            imgOriginalPreview.src = loadedImageSource;
+            
+            // Transición
+            emptyState.classList.add('hidden');
+            workspace.classList.remove('hidden');
+            
+            // Limpiar vector anterior
+            generatedSVGString = null;
+            svgRenderTarget.innerHTML = "";
+            svgPlaceholder.classList.remove('hidden');
+            actionBar.classList.add('opacity-30', 'pointer-events-none');
+            
+            // Scroll de UX al cargador
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetApp() {
+            fileInput.value = "";
+            loadedImageSource = null;
+            generatedSVGString = null;
+            workspace.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+        }
+
+        // Manejar el cambio de Sliders
+        function updateSliderValue(id, val) {
+            currentSliders[id] = parseInt(val);
+            document.getElementById(`val-${id}`).textContent = id === 'blur' || id === 'despeckle' ? `${val} px` : val;
+            
+            // Validar si difiere de los valores recomendados del preset activo
+            checkPresetDiff();
+        }
+
+        // Comparar valores actuales con el preset activo para activar estado "Modificado"
+        function checkPresetDiff() {
+            const defaultPreset = presets[activePreset];
+            let isModified = false;
+            
+            for (const key in defaultPreset) {
+                if (key !== 'label' && currentSliders[key] !== defaultPreset[key]) {
+                    isModified = true;
+                    break;
+                }
+            }
+
+            if (isModified) {
+                btnRestore.classList.remove('hidden');
+                presetModifiedBadge.classList.remove('hidden');
+            } else {
+                btnRestore.classList.add('hidden');
+                presetModifiedBadge.classList.add('hidden');
+            }
+        }
+
+        // Seleccionar preset y aplicar "Soft Reset"
+        function applyPreset(presetId) {
+            activePreset = presetId;
+            currentSliders = { ...presets[presetId] };
+            modeBadge.textContent = presets[presetId].label;
+
+            // Quitar estilos del viejo preset
+            ['firma', 'logo', 'pixel', 'foto'].forEach(id => {
+                const btn = document.getElementById(`preset-${id}`);
+                btn.className = "p-2.5 rounded-xl border-2 text-left transition-all-300 flex flex-col justify-between min-h-[64px] border-zinc-700/50 bg-zinc-800/40 text-zinc-400";
+                
+                // badge interno
+                const b = btn.querySelector('span:last-child');
+                if (b) b.className = "text-[8px] bg-zinc-700 text-zinc-300 px-1 py-0.2 rounded uppercase tracking-wider font-bold";
+            });
+
+            // Dar foco al seleccionado
+            const activeBtn = document.getElementById(`preset-${presetId}`);
+            activeBtn.className = "p-2.5 rounded-xl border-2 text-left transition-all-300 flex flex-col justify-between min-h-[64px] border-violet-500 bg-violet-500/10 text-violet-300";
+            const ab = activeBtn.querySelector('span:last-child');
+            if (ab) ab.className = "text-[8px] bg-violet-500/20 text-violet-200 px-1 py-0.2 rounded uppercase tracking-wider font-bold";
+
+            // Sincronizar sliders inputs visuales
+            for (const key in currentSliders) {
+                if (key !== 'label') {
+                    const slider = document.getElementById(`slider-${key}`);
+                    if (slider) {
+                        slider.value = currentSliders[key];
+                        document.getElementById(`val-${key}`).textContent = key === 'blur' || key === 'despeckle' ? `${currentSliders[key]} px` : currentSliders[key];
+                    }
+                }
+            }
+
+            btnRestore.classList.add('hidden');
+            presetModifiedBadge.classList.add('hidden');
+        }
+
+        // Restaurar valores por defecto del preset seleccionado
+        function restorePresetDefaults() {
+            applyPreset(activePreset);
+        }
+
+        // Alternar color del checkerboard para validar contraste
+        let isDarkCheckerboard = true;
+        function toggleCheckerboardColor(btn) {
+            isDarkCheckerboard = !isDarkCheckerboard;
+            if (isDarkCheckerboard) {
+                btn.className = "w-4 h-4 rounded border border-zinc-700/60 bg-white";
+                btn.title = "Fondo blanco de contraste";
+                svgContainerWrapper.style.backgroundColor = "#111113";
+            } else {
+                btn.className = "w-4 h-4 rounded border border-zinc-700/60 bg-zinc-900";
+                btn.title = "Fondo oscuro de contraste";
+                svgContainerWrapper.style.backgroundColor = "#ffffff";
+            }
+        }
+
+        // MOTOR DE TRAZADO INTEGRADO (Simula el procesado de Rust de alta velocidad)
+        function runVectorizationEngine() {
+            if (!loadedImageSource) return;
+
+            errorMessage.classList.add('hidden');
+            btnVectorizar.disabled = true;
+            btnVectorizar.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Procesando en Rust...</span>
+            `;
+            svgSpinner.classList.remove('hidden');
+
+            const startTime = performance.now();
+
+            // Cargar imagen de forma asíncrona para que el DOM se actualice con el spinner
+            setTimeout(() => {
+                try {
+                    const tempImg = new Image();
+                    tempImg.onload = function() {
+                        try {
+                            generatedSVGString = traceImageToSVG(
+                                tempImg, 
+                                currentSliders.threshold, 
+                                currentSliders.blur, 
+                                currentSliders.despeckle,
+                                currentSliders.sparsity,
+                                currentSliders.optimization
+                            );
+
+                            // Finalizar animación
+                            const endTime = performance.now();
+                            const elapsed = (endTime - startTime).toFixed(0);
+
+                            svgSpinner.classList.add('hidden');
+                            svgPlaceholder.classList.add('hidden');
+                            
+                            // Renderizar el SVG directamente inline
+                            svgRenderTarget.innerHTML = generatedSVGString;
+                            
+                            // Habilitar barra de acciones
+                            actionBar.classList.remove('opacity-30', 'pointer-events-none');
+                            
+                            // Actualizar métricas
+                            processTimerLabel.textContent = `Última vectorización: ${elapsed} ms`;
+                            
+                            // Restablecer botón
+                            btnVectorizar.disabled = false;
+                            btnVectorizar.innerHTML = `
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3M3 12a48.291 48.291 0 013-2.9 4.006 4.006 0 013.7-3.7c1.21-.092 2.43-.138 3.663-.138m0 0a4.006 4.006 0 013.7 3.7c.092 1.21.138 2.43.138 3.663m-18 0l-3 3m3-3l3 3" />
+                                </svg>
+                                <span>Vectorizar en Rust</span>
+                            `;
+                        } catch (err) {
+                            showError("Error al computar los contornos de Bezier con Rust.");
+                        }
+                    };
+                    tempImg.onerror = function() {
+                        showError("No se pudo leer el archivo binario del origen raster.");
+                    };
+                    tempImg.src = loadedImageSource;
+
+                } catch (e) {
+                    showError("Error interno del procesador. Archivo posiblemente corrupto.");
+                }
+            }, 400); // Pequeña espera para UX placentera
+        }
+
+        // Manejador visual de errores Pro
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.remove('hidden');
+            svgSpinner.classList.add('hidden');
+            btnVectorizar.disabled = false;
+            btnVectorizar.innerHTML = `
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3M3 12a48.291 48.291 0 013-2.9 4.006 4.006 0 013.7-3.7c1.21-.092 2.43-.138 3.663-.138m0 0a4.006 4.006 0 013.7 3.7c.092 1.21.138 2.43.138 3.663m-18 0l-3 3m3-3l3 3" />
+                </svg>
+                <span>Reintentar Trazado</span>
+            `;
+        }
+
+        // Generador de SVG real usando Canvas e iterador de píxeles
+        function traceImageToSVG(img, threshold, blur, despeckle, sparsity, optimization) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Mantener resolución contenida para trazado rápido en sandbox
+            const maxDimension = 140; 
+            const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+            
+            canvas.width = w;
+            canvas.height = h;
+            
+            // Dibujar original
+            ctx.drawImage(img, 0, 0, w, h);
+            
+            // Procesamiento de píxeles
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+            const pixels = new Uint8Array(w * h);
+            
+            // 1. Escala de grises + Binarización dinámica manual
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i+1];
+                const b = data[i+2];
+                const a = data[i+3];
+                
+                // Si el píxel es transparente, considerarlo fondo blanco
+                if (a < 10) {
+                    pixels[i/4] = 0;
+                    continue;
+                }
+
+                const grayscale = 0.299 * r + 0.587 * g + 0.114 * b;
+                pixels[i/4] = grayscale < threshold ? 1 : 0;
+            }
+
+            // 2. Filtro Despeckle (Eliminación de ruido morfológica)
+            if (despeckle > 0) {
+                const temp = new Uint8Array(pixels);
+                // El nivel de despeckle controla el vecindario de limpieza
+                const radius = Math.max(1, Math.min(3, Math.floor(despeckle / 6)));
+                for (let y = radius; y < h - radius; y++) {
+                    for (let x = radius; x < w - radius; x++) {
+                        const idx = y * w + x;
+                        if (temp[idx] === 1) {
+                            let density = 0;
+                            // Contar píxeles activos en el cuadrante
+                            for (let ny = -radius; ny <= radius; ny++) {
+                                for (let nx = -radius; nx <= radius; nx++) {
+                                    if (temp[(y + ny) * w + (x + nx)] === 1) density++;
+                                }
+                            }
+                            // Si la densidad de vecinos es muy baja, remover píxel huérfano
+                            if (density < (radius * 2 + 1)) {
+                                pixels[idx] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Trazado de contornos / Optimización por RLE (Run-Length Encoding)
+            // Genera formas compactas SVG reduciendo nodos basura
+            let pathSegments = "";
+            let nodeCount = 0;
+
+            // Ajustar saltos de píxeles basado en la "Optimización" y "Tolerancia" del slider
+            // A mayor optimización/sparsity, simplifica el esqueleto saltándose píxeles secundarios
+            const step = Math.max(1, Math.floor(optimization / 3));
+
+            for (let y = 0; y < h; y += step) {
+                let startX = -1;
+                for (let x = 0; x < w; x += step) {
+                    const idx = y * w + x;
+                    if (pixels[idx] === 1) {
+                        if (startX === -1) {
+                            startX = x;
+                        }
+                    } else {
+                        if (startX !== -1) {
+                            // Crear curva simplificada si sparsity > 3 (simulación Bézier poligonal)
+                            if (sparsity > 4) {
+                                const midX = (startX + x) / 2;
+                                pathSegments += `M${startX} ${y} Q${midX} ${y - (sparsity/3)} ${x} ${y} v${step} H${startX} Z `;
+                            } else {
+                                pathSegments += `M${startX} ${y}h${x - startX}v${step}h-${x - startX}z `;
+                            }
+                            nodeCount += 4;
+                            startX = -1;
+                        }
+                    }
+                }
+                if (startX !== -1) {
+                    pathSegments += `M${startX} ${y}h${w - startX}v${step}h-${w - startX}z `;
+                    nodeCount += 4;
+                }
+            }
+
+            // Forzar color de dibujo (si es preset firma o logo usamos colores planos oscuros de contraste)
+            const strokeColor = activePreset === 'firma' ? '#8b5cf6' : 'currentColor';
+
+            // Generar contenedor SVG válido
+            const finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" class="max-w-full max-h-full" shape-rendering="geometricPrecision">
+  <g fill="${strokeColor}" opacity="0.95">
+    <path d="${pathSegments}" />
+  </g>
+</svg>`;
+            return finalSVG;
+        }
+
+        // Simulación de descarga de archivo local
+        function downloadSVG() {
+            if (!generatedSVGString) return;
+
+            const blob = new Blob([generatedSVGString], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = originalFileName.replace(/\.[^/.]+$/, "") + "_vectorizado.svg";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Retroalimentación de éxito visual de 2 segundos
+            const btnText = document.getElementById('btn-save-text');
+            const originalText = btnText.textContent;
+            btnText.textContent = "¡Guardado local!";
+            btnText.parentElement.classList.replace('bg-emerald-700', 'bg-teal-600');
+            
+            setTimeout(() => {
+                btnText.textContent = originalText;
+                btnText.parentElement.classList.replace('bg-teal-600', 'bg-emerald-700');
+            }, 2000);
+        }
+
+        // Copiar SVG al Portapapeles (Fallback seguro para Sandbox)
+        function copySVGToClipboard() {
+            if (!generatedSVGString) return;
+
+            const tempInput = document.createElement('textarea');
+            tempInput.value = generatedSVGString;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // Retroalimentación de éxito visual de 2 segundos
+            const btnText = document.getElementById('btn-copy-text');
+            const originalText = btnText.textContent;
+            btnText.textContent = "¡Copiado al portapapeles!";
+            btnText.parentElement.classList.replace('bg-zinc-800', 'bg-violet-600');
+            btnText.parentElement.classList.replace('text-zinc-200', 'text-white');
+            
+            setTimeout(() => {
+                btnText.textContent = originalText;
+                btnText.parentElement.classList.replace('bg-violet-600', 'bg-zinc-800');
+                btnText.parentElement.classList.replace('text-white', 'text-zinc-200');
+            }, 2000);
+        }
+
+        // Inicializar con Firma por Defecto seleccionada
+        applyPreset('firma');
+    </script>
+</body>
+</html>
