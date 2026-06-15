@@ -1,4 +1,5 @@
-import type { VectorizeParams, VectorizeMode } from '$lib/types/vectorization';
+import { invoke } from '@tauri-apps/api/core';
+import type { VectorizeParams, VectorizeMode, VectorizeResult } from '$lib/types/vectorization';
 import type { Preset } from '$lib/types/presets';
 import { imageStore } from './imageStore.svelte';
 
@@ -14,15 +15,42 @@ let params = $state<VectorizeParams>({
   node_optimization: 6,
 });
 let activePreset = $state<string>('Logo');
+let outputColor = $state<string>('');
+
+function recolorSvg(svgText: string, color: string): string {
+  return svgText.replace(/(<[a-zA-Z0-9]+[^>]+)(fill|stroke)="([^"]+)"/g, (match, prefix, attr, val) => {
+    if (val === 'none') {
+      return match;
+    }
+    if (attr === 'fill') {
+      const lowerVal = val.toLowerCase().trim();
+      if (lowerVal === '#ffffff' || lowerVal === 'white' || lowerVal === 'rgb(255,255,255)' || lowerVal === 'rgb(255, 255, 255)') {
+        return match;
+      }
+      return `${prefix}fill="${color}"`;
+    } else if (attr === 'stroke') {
+      return `${prefix}stroke="${color}"`;
+    }
+    return match;
+  });
+}
 
 export const vectorStore = {
   get svg() { return svg; },
-  get svgResult() { return svg || null; },
+  get svgResult() {
+    if (!svg) return null;
+    if (outputColor) {
+      return recolorSvg(svg, outputColor);
+    }
+    return svg;
+  },
   get isProcessing() { return isProcessing; },
   get vectorizing() { return isProcessing; },
   get processingTimeMs() { return processingTimeMs; },
   get params() { return params; },
   get activePreset() { return activePreset; },
+  get outputColor() { return outputColor; },
+  set outputColor(val: string) { outputColor = val; },
 
   setPreset(p: Preset) {
     activePreset = p.name;
@@ -46,19 +74,22 @@ export const vectorStore = {
     isProcessing = true;
     svg = '';
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const result = await invoke<string>('vectorize_image', {
-        data: img.data_base64,
-        width: img.width,
-        height: img.height,
-        mode: params.mode,
-        threshold: params.threshold,
-        blurRadius: params.blur_radius,
-        despeckle: params.despeckle,
-        sparsity: params.sparsity,
-        nodeOptimization: params.node_optimization,
+      const result = await invoke<VectorizeResult>('vectorize_image', {
+        dataBase64: img.data_base64,
+        params: {
+          mode: params.mode,
+          threshold: params.threshold,
+          blur_radius: params.blur_radius,
+          despeckle: params.despeckle,
+          sparsity: params.sparsity,
+          node_optimization: params.node_optimization,
+        },
       });
-      svg = result;
+      svg = result.svg;
+      processingTimeMs = result.processing_time_ms;
+    } catch (e) {
+      console.error('[vectorStore] vectorize failed:', e);
+      throw e;
     } finally {
       isProcessing = false;
     }
@@ -67,5 +98,6 @@ export const vectorStore = {
   clear() {
     svg = '';
     processingTimeMs = 0;
+    outputColor = '';
   },
 };

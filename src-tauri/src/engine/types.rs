@@ -25,3 +25,17 @@ pub struct VectorizeResult {
     pub height: u32,
     pub processing_time_ms: u64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchImageInput {
+    pub data_base64: String,
+    pub name: String,
+    pub params: VectorizeParams,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchResultItem {
+    pub name: String,
+    pub result: VectorizeResult,
+    pub error: Option<String>,
+}

@@ -9,7 +9,7 @@ export interface Preset {
   despeckle: number;
   sparsity: number;
   node_optimization: number;
-  mode: string;
+  mode: VectorizeMode;
 }
 
 export const PRESETS: Preset[] = [

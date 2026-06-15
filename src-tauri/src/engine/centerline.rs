@@ -87,32 +87,39 @@ fn remove_small_components(img: &GrayImage, min_size: u32) -> GrayImage {
 
 fn morphological_thin(img: &GrayImage) -> GrayImage {
     let (w, h) = img.dimensions();
-    let mut prev = img.clone();
+    let mut current = img.clone();
+    let mut temp = GrayImage::new(w, h);
+
     loop {
-        let mut current = prev.clone();
         let mut changed = false;
 
         for pass in 0..2 {
+            for y in 0..h {
+                for x in 0..w {
+                    temp.put_pixel(x, y, *current.get_pixel(x, y));
+                }
+            }
+
             for y in 1..h - 1 {
                 for x in 1..w - 1 {
-                    if prev.get_pixel(x, y)[0] == 0 {
+                    if current.get_pixel(x, y)[0] == 0 {
                         continue;
                     }
-                    let p = get_pixel9(&prev, x, y);
+                    let p = get_pixel9(&current, x, y);
                     if thin_condition(p, pass == 0) {
-                        current.put_pixel(x, y, Luma([0u8]));
+                        temp.put_pixel(x, y, Luma([0u8]));
                         changed = true;
                     }
                 }
             }
-            prev = current.clone();
+            std::mem::swap(&mut current, &mut temp);
         }
 
         if !changed {
             break;
         }
     }
-    prev
+    current
 }
 
 fn get_pixel9(img: &GrayImage, x: u32, y: u32) -> [u8; 9] {
@@ -153,11 +160,112 @@ fn thin_condition(p: [u8; 9], first_pass: bool) -> bool {
     }
 }
 
+fn count_skeleton_neighbors(x: u32, y: u32, w: u32, h: u32, skeleton: &GrayImage) -> usize {
+    let mut count = 0;
+    for &(dx, dy) in &NEIGHBORS {
+        let nx = x.wrapping_add_signed(dx);
+        let ny = y.wrapping_add_signed(dy);
+        if nx < w && ny < h {
+            if skeleton.get_pixel(nx, ny)[0] > 0 {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn get_next_steps(cx: u32, cy: u32, w: u32, h: u32, skeleton: &GrayImage, visited: &[bool]) -> Vec<(u32, u32)> {
+    let mut steps = Vec::new();
+    for &(dx, dy) in &NEIGHBORS {
+        let nx = cx.wrapping_add_signed(dx);
+        let ny = cy.wrapping_add_signed(dy);
+        if nx < w && ny < h {
+            if skeleton.get_pixel(nx, ny)[0] > 0 {
+                let nidx = (ny * w + nx) as usize;
+                let is_junc = count_skeleton_neighbors(nx, ny, w, h, skeleton) > 2;
+                if !visited[nidx] || is_junc {
+                    steps.push((nx, ny));
+                }
+            }
+        }
+    }
+    steps
+}
+
 fn trace_skeleton(skeleton: &GrayImage) -> Vec<Vec<(u32, u32)>> {
     let (w, h) = skeleton.dimensions();
     let mut visited = vec![false; (w * h) as usize];
     let mut paths: Vec<Vec<(u32, u32)>> = Vec::new();
 
+    // 1. Find all endpoints
+    let mut endpoints = Vec::new();
+    for y in 0..h {
+        for x in 0..w {
+            if skeleton.get_pixel(x, y)[0] > 0 {
+                let n_count = count_skeleton_neighbors(x, y, w, h, skeleton);
+                if n_count <= 1 {
+                    endpoints.push((x, y));
+                }
+            }
+        }
+    }
+
+    // 2. Trace from endpoints
+    for &(ex, ey) in &endpoints {
+        let eidx = (ey * w + ex) as usize;
+        if visited[eidx] || skeleton.get_pixel(ex, ey)[0] == 0 {
+            continue;
+        }
+
+        let mut path = Vec::new();
+        let mut cx = ex;
+        let mut cy = ey;
+        visited[eidx] = true;
+        path.push((cx, cy));
+
+        loop {
+            let neighbors = get_next_steps(cx, cy, w, h, skeleton, &visited);
+            if neighbors.is_empty() {
+                break;
+            }
+
+            let mut next_pixel = None;
+            for &(nx, ny) in &neighbors {
+                if count_skeleton_neighbors(nx, ny, w, h, skeleton) > 2 {
+                    next_pixel = Some((nx, ny, true));
+                    break;
+                }
+            }
+
+            if next_pixel.is_none() {
+                let unvisited: Vec<(u32, u32)> = neighbors.into_iter()
+                    .filter(|&(nx, ny)| !visited[(ny * w + nx) as usize])
+                    .collect();
+                if !unvisited.is_empty() {
+                    next_pixel = Some((unvisited[0].0, unvisited[0].1, false));
+                }
+            }
+
+            if let Some((nx, ny, is_junc)) = next_pixel {
+                let nidx = (ny * w + nx) as usize;
+                visited[nidx] = true;
+                path.push((nx, ny));
+                if is_junc {
+                    break;
+                }
+                cx = nx;
+                cy = ny;
+            } else {
+                break;
+            }
+        }
+
+        if path.len() >= 2 {
+            paths.push(path);
+        }
+    }
+
+    // 3. Trace remaining loops / circles
     for y in 0..h {
         for x in 0..w {
             let idx = (y * w + x) as usize;
@@ -166,35 +274,59 @@ fn trace_skeleton(skeleton: &GrayImage) -> Vec<Vec<(u32, u32)>> {
             }
 
             let mut path = Vec::new();
-            let mut queue = VecDeque::new();
-            queue.push_back((x, y));
+            let mut cx = x;
+            let mut cy = y;
             visited[idx] = true;
+            path.push((cx, cy));
 
-            while let Some((cx, cy)) = queue.pop_front() {
-                path.push((cx, cy));
-                for (dx, dy) in &NEIGHBORS {
-                    let nx = cx.wrapping_add_signed(*dx);
-                    let ny = cy.wrapping_add_signed(*dy);
-                    if nx < w && ny < h {
-                        let nidx = (ny * w + nx) as usize;
-                        if !visited[nidx] && skeleton.get_pixel(nx, ny)[0] > 0 {
-                            visited[nidx] = true;
-                            queue.push_back((nx, ny));
-                        }
+            loop {
+                let neighbors = get_next_steps(cx, cy, w, h, skeleton, &visited);
+                if neighbors.is_empty() {
+                    break;
+                }
+
+                let mut next_pixel = None;
+                for &(nx, ny) in &neighbors {
+                    if count_skeleton_neighbors(nx, ny, w, h, skeleton) > 2 {
+                        next_pixel = Some((nx, ny, true));
+                        break;
                     }
+                }
+
+                if next_pixel.is_none() {
+                    let unvisited: Vec<(u32, u32)> = neighbors.into_iter()
+                        .filter(|&(nx, ny)| !visited[(ny * w + nx) as usize])
+                        .collect();
+                    if !unvisited.is_empty() {
+                        next_pixel = Some((unvisited[0].0, unvisited[0].1, false));
+                    }
+                }
+
+                if let Some((nx, ny, is_junc)) = next_pixel {
+                    let nidx = (ny * w + nx) as usize;
+                    visited[nidx] = true;
+                    path.push((nx, ny));
+                    if is_junc {
+                        break;
+                    }
+                    cx = nx;
+                    cy = ny;
+                } else {
+                    break;
                 }
             }
 
-            if !path.is_empty() {
+            if path.len() >= 2 {
                 paths.push(path);
             }
         }
     }
+
     paths
 }
 
 fn simplify_paths(paths: &[Vec<(u32, u32)>], node_optimization: f64) -> Vec<Vec<(u32, u32)>> {
-    let epsilon = (1.0 - node_optimization) * 5.0 + 0.5;
+    let epsilon = (10.0 - node_optimization) * 0.5 + 0.1;
     paths.iter().map(|p| rdp_simplify(p, epsilon)).collect()
 }
 

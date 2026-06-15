@@ -18,8 +18,8 @@ pub fn trace_contour(img: &DynamicImage, params: &VectorizeParams) -> VectorizeR
     let mut config = vtracer::Config::default();
     config.hierarchical = vtracer::Hierarchical::Stacked;
     config.filter_speckle = params.despeckle as usize;
-    config.color_precision = 6;
-    config.layer_difference = 249;
+    config.color_precision = 8;
+    config.layer_difference = (params.threshold as i32 / 8).max(1);
     config.corner_threshold = params.sparsity as i32;
     config.length_threshold = 4.0;
     config.max_iterations = 10;

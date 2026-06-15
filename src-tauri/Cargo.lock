@@ -4898,6 +4898,7 @@ dependencies = [
  "base64 0.22.1",
  "image 0.25.10",
  "imageproc",
+ "rayon",
  "serde",
  "serde_json",
  "tauri",

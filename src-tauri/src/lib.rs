@@ -12,6 +12,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             vectorize::vectorize_image,
+            vectorize::vectorize_batch,
             file_ops::save_svg,
             file_ops::copy_svg_to_clipboard,
         ])

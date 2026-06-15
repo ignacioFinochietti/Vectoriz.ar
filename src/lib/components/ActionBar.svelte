@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invoke } from '@tauri-apps/api/core';
   import { vectorStore } from '$lib/stores/vectorStore';
 
   let hasSvg = $derived(vectorStore.svgResult !== null);
@@ -8,8 +9,14 @@
   async function downloadSvg() {
     if (!currentSvg) return;
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('save_svg', { data: currentSvg });
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const path = await save({
+        filters: [{ name: 'SVG', extensions: ['svg'] }],
+        defaultPath: 'vectorizado.svg',
+      });
+      if (path) {
+        await invoke('save_svg', { path, svg: currentSvg });
+      }
     } catch {
       const blob = new Blob([currentSvg], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
@@ -24,8 +31,7 @@
   async function copySvg() {
     if (!currentSvg) return;
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('copy_svg_to_clipboard', { data: currentSvg });
+      await invoke('copy_svg_to_clipboard', { svg: currentSvg });
     } catch {
       await navigator.clipboard.writeText(currentSvg);
     }

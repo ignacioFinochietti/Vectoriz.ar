@@ -38,14 +38,14 @@
     oninput={handleInput}
     class="w-full h-1.5 rounded-full appearance-none cursor-pointer
       bg-zinc-800
-      accent-violet-500
+      accent-sky-500
       [&::-webkit-slider-thumb]:appearance-none
       [&::-webkit-slider-thumb]:w-3.5
       [&::-webkit-slider-thumb]:h-3.5
       [&::-webkit-slider-thumb]:rounded-full
-      [&::-webkit-slider-thumb]:bg-violet-500
+      [&::-webkit-slider-thumb]:bg-sky-500
       [&::-webkit-slider-thumb]:shadow-md
-      [&::-webkit-slider-thumb]:shadow-violet-500/30
+      [&::-webkit-slider-thumb]:shadow-sky-500/30
       [&::-webkit-slider-thumb]:transition-transform
       [&::-webkit-slider-thumb]:duration-150
       [&::-webkit-slider-thumb]:hover:scale-125"
